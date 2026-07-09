@@ -1,0 +1,74 @@
+---
+# satellite_prereqs — validate host, configure time, storage and firewall.
+
+- name: Assert the operating system is a supported RHEL release
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution'] == "RedHat"
+      - ansible_facts['distribution_major_version'] == rhel_major_release
+    fail_msg: >-
+      Satellite {{ satellite_version }} requires RHEL {{ rhel_major_release }}.
+      Detected {{ ansible_facts['distribution'] }}
+      {{ ansible_facts['distribution_major_version'] }}.
+    success_msg: "Supported OS detected: RHEL {{ ansible_facts['distribution_version'] }}"
+
+- name: Assert the host meets minimum CPU and memory requirements
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['processor_vcpus'] | int >= satellite_min_cpu_cores | int
+      - ansible_facts['memtotal_mb'] | int >= satellite_min_ram_mb | int
+    fail_msg: >-
+      Insufficient resources. Required: {{ satellite_min_cpu_cores }} vCPU /
+      {{ satellite_min_ram_mb }} MB RAM. Found:
+      {{ ansible_facts['processor_vcpus'] }} vCPU /
+      {{ ansible_facts['memtotal_mb'] }} MB RAM.
+    success_msg: "Host sizing OK."
+
+- name: Assert the system hostname is a fully qualified domain name (FQDN)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['fqdn'] is search('\.')
+      - ansible_facts['fqdn'] == ansible_facts['fqdn'] | lower
+    fail_msg: >-
+      Satellite requires a lowercase FQDN. Current hostname is
+      '{{ ansible_facts['fqdn'] }}'. Set it with:
+      hostnamectl set-hostname <fqdn>
+    success_msg: "FQDN OK: {{ ansible_facts['fqdn'] }}"
+
+- name: Ensure forward and reverse DNS resolve to this host
+  ansible.builtin.command:
+    cmd: "getent hosts {{ ansible_facts['fqdn'] }}"
+  register: satellite_dns_check
+  changed_when: false
+  failed_when: satellite_dns_check.rc != 0
+
+- name: Set the system timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: Ensure chrony is installed for time synchronization
+  ansible.builtin.dnf:
+    name: chrony
+    state: present
+
+- name: Configure chrony NTP servers
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart chronyd
+
+- name: Ensure chronyd is enabled and running
+  ansible.builtin.service:
+    name: chronyd
+    state: started
+    enabled: true
+
+- name: Configure dedicated storage mounts
+  ansible.builtin.include_tasks: storage.yml
+  when: manage_storage | bool
+
+- name: Configure firewall
+  ansible.builtin.include_tasks: firewall.yml

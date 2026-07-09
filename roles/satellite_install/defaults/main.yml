@@ -1,0 +1,24 @@
+---
+# Defaults for satellite_install role.
+
+satellite_tuning_profile: "default"
+satellite_initial_organization: "Default Organization"
+satellite_initial_location: "Default Location"
+satellite_admin_username: "admin"
+
+satellite_enable_dns: false
+satellite_enable_dhcp: false
+satellite_enable_tftp: true
+satellite_enable_foreman_proxy_content: true
+satellite_foreman_proxy_dns_managed: false
+satellite_foreman_proxy_dhcp_managed: false
+
+satellite_use_custom_certs: false
+satellite_custom_cert_file: ""
+satellite_custom_key_file: ""
+satellite_custom_ca_bundle_file: ""
+
+satellite_http_proxy: ""
+
+# Where the generated installer answer/log lives.
+satellite_installer_log: "/var/log/foreman-installer/satellite.log"

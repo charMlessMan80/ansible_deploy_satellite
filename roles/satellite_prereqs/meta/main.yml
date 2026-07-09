@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: satellite_prereqs
+  author: Platform Engineering
+  description: Validate host and configure OS prerequisites for Red Hat Satellite 6.19
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+  galaxy_tags:
+    - satellite
+    - redhat
+    - prerequisites
+dependencies: []

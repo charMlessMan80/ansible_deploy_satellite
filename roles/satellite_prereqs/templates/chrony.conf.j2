@@ -1,0 +1,12 @@
+# Ansible-managed — do not edit by hand.
+# chrony configuration for the Satellite server.
+{% for server in chrony_ntp_servers %}
+server {{ server }} iburst
+{% endfor %}
+
+driftfile /var/lib/chrony/drift
+makestep 1.0 3
+rtcsync
+keyfile /etc/chrony.keys
+leapsectz right/UTC
+logdir /var/log/chrony

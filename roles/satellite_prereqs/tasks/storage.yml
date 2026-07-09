@@ -1,0 +1,44 @@
+---
+# Create XFS filesystems and mount the dedicated Satellite data volumes.
+# Assumes the block devices / LVM logical volumes already exist (provisioned by
+# the platform, kickstart, or a separate storage role). We never destroy data:
+# mkfs only runs when the device has no existing filesystem.
+
+- name: Verify each configured storage device exists
+  ansible.builtin.stat:
+    path: "{{ item.device }}"
+  loop: "{{ satellite_storage_mounts }}"
+  loop_control:
+    label: "{{ item.device }}"
+  register: satellite_device_stat
+
+- name: Fail if a configured storage device is missing
+  ansible.builtin.assert:
+    that: "item.stat.exists"
+    fail_msg: >-
+      Device {{ item.item.device }} for mount {{ item.item.path }} does not
+      exist. Provision it (expected size {{ item.item.size_hint }}) before
+      running this role, or set manage_storage: false.
+  loop: "{{ satellite_device_stat.results }}"
+  loop_control:
+    label: "{{ item.item.device }}"
+
+- name: Create filesystem on each device (only if none exists)
+  community.general.filesystem:
+    fstype: "{{ item.fstype | default('xfs') }}"
+    dev: "{{ item.device }}"
+    # force is intentionally omitted so existing data is never overwritten.
+  loop: "{{ satellite_storage_mounts }}"
+  loop_control:
+    label: "{{ item.device }} ({{ item.fstype | default('xfs') }})"
+
+- name: Ensure mount points are present and mounted at boot
+  ansible.posix.mount:
+    path: "{{ item.path }}"
+    src: "{{ item.device }}"
+    fstype: "{{ item.fstype | default('xfs') }}"
+    opts: "defaults"
+    state: mounted
+  loop: "{{ satellite_storage_mounts }}"
+  loop_control:
+    label: "{{ item.path }}"

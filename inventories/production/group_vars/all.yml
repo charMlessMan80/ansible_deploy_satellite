@@ -1,0 +1,105 @@
+---
+###############################################################################
+# PRODUCTION environment variables for Red Hat Satellite 6.19
+#
+# Secrets (passwords, activation keys) must NOT be stored here in clear text.
+# Put them in vault.yml (encrypted with ansible-vault) — see vault.yml for the
+# expected variable names. Non-secret, environment-specific settings live here.
+###############################################################################
+
+# ---------------------------------------------------------------------------
+# Platform / version
+# ---------------------------------------------------------------------------
+satellite_version: "6.19"
+rhel_major_release: "9"
+
+# ---------------------------------------------------------------------------
+# Red Hat subscription registration
+# Prefer an Activation Key + Organization over username/password so no
+# interactive credentials are needed on the host.
+# ---------------------------------------------------------------------------
+rhsm_org_id: "1234567"
+rhsm_activation_key: "satellite-prod-key"
+# Register against the Red Hat CDN (leave empty) or a Capsule/upstream Satellite.
+rhsm_server_hostname: "subscription.rhsm.redhat.com"
+rhsm_release: "{{ rhel_major_release }}"
+
+# ---------------------------------------------------------------------------
+# Storage layout (best practice: dedicated LVM volumes for high-growth dirs)
+# Set manage_storage: false if storage is already provisioned by the platform.
+# ---------------------------------------------------------------------------
+manage_storage: true
+satellite_storage_mounts:
+  - path: /var/lib/pulp          # Content (RPMs, container images) — largest
+    device: /dev/mapper/vg_sat-lv_pulp
+    fstype: xfs
+    size_hint: ">= 500 GB"
+  - path: /var/lib/pgsql         # PostgreSQL database
+    device: /dev/mapper/vg_sat-lv_pgsql
+    fstype: xfs
+    size_hint: ">= 100 GB"
+  - path: /var/log               # Logs
+    device: /dev/mapper/vg_sat-lv_log
+    fstype: xfs
+    size_hint: ">= 50 GB"
+
+# ---------------------------------------------------------------------------
+# Sizing / installer tuning profile
+# Options: default | medium | large | extra-large | extra-extra-large
+# Production typically 'large' (up to ~5000 hosts) — adjust to your scale.
+# ---------------------------------------------------------------------------
+satellite_tuning_profile: "large"
+
+# ---------------------------------------------------------------------------
+# satellite-installer options
+# ---------------------------------------------------------------------------
+satellite_initial_organization: "ACME"
+satellite_initial_location: "Datacenter-Prod"
+satellite_admin_username: "admin"
+# satellite_admin_password comes from vault (vault_satellite_admin_password)
+
+# Enable/disable optional services
+satellite_enable_dns: false
+satellite_enable_dhcp: false
+satellite_enable_tftp: true
+satellite_enable_foreman_proxy_content: true
+
+# Restrict registered content hosts / provisioning if not needed
+satellite_foreman_proxy_dns_managed: false
+satellite_foreman_proxy_dhcp_managed: false
+
+# ---------------------------------------------------------------------------
+# Custom SSL certificates (recommended for production)
+# When true, provide the paths below (files must be present on the Satellite
+# host or copied by the install role). When false, the installer generates a
+# self-signed Katello CA.
+# ---------------------------------------------------------------------------
+satellite_use_custom_certs: true
+satellite_custom_cert_file: "/root/certs/satellite.crt"
+satellite_custom_key_file: "/root/certs/satellite.key"
+satellite_custom_ca_bundle_file: "/root/certs/ca-bundle.crt"
+
+# ---------------------------------------------------------------------------
+# Networking / time
+# ---------------------------------------------------------------------------
+chrony_ntp_servers:
+  - 0.rhel.pool.ntp.org
+  - 1.rhel.pool.ntp.org
+timezone: "UTC"
+
+# HTTP(S) proxy for the Satellite server itself (empty = no proxy)
+satellite_http_proxy: ""
+
+# ---------------------------------------------------------------------------
+# Post-installation content configuration (redhat.satellite collection)
+# ---------------------------------------------------------------------------
+satellite_manage_content: true
+satellite_manifest_path: "/root/manifest_prod.zip"
+
+satellite_lifecycle_environments:
+  - name: "Development"
+    prior: "Library"
+  - name: "Testing"
+    prior: "Development"
+  - name: "Production"
+    prior: "Testing"

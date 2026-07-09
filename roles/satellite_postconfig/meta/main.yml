@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: satellite_postconfig
+  author: Platform Engineering
+  description: Post-install content configuration for Red Hat Satellite 6.19
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+  galaxy_tags:
+    - satellite
+    - redhat
+    - content
+dependencies: []

@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: satellite_install
+  author: Platform Engineering
+  description: Install packages and run satellite-installer for Red Hat Satellite 6.19
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+  galaxy_tags:
+    - satellite
+    - redhat
+    - installer
+dependencies: []

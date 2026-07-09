@@ -1,0 +1,17 @@
+---
+###############################################################################
+# PRODUCTION secrets — ENCRYPT THIS FILE with ansible-vault!
+#
+#   ansible-vault encrypt inventories/production/group_vars/vault.yml
+#   ansible-vault edit    inventories/production/group_vars/vault.yml
+#
+# Run playbooks with --ask-vault-pass or --vault-password-file.
+# The values below are placeholders — replace them with real secrets.
+###############################################################################
+
+# Satellite Web UI / hammer admin password
+vault_satellite_admin_password: "CHANGE_ME_prod_admin_password"
+
+# Optional: Red Hat username/password if NOT using an activation key
+# vault_rhsm_username: "rhn-user"
+# vault_rhsm_password: "CHANGE_ME"

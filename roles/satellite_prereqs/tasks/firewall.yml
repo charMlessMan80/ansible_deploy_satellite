@@ -1,0 +1,23 @@
+---
+# Open the firewall ports required by the Satellite server using firewalld.
+
+- name: Ensure firewalld is installed
+  ansible.builtin.dnf:
+    name: firewalld
+    state: present
+
+- name: Ensure firewalld is enabled and running
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Open required Satellite ports
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ satellite_firewall_ports }}"
+  loop_control:
+    label: "{{ item }}"

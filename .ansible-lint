@@ -1,0 +1,11 @@
+---
+# ansible-lint configuration
+profile: production
+
+exclude_paths:
+  - collections/
+  - .github/
+
+# Vault files can't be parsed by the linter.
+skip_list:
+  - var-naming[no-role-prefix]

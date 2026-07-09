@@ -1,0 +1,25 @@
+---
+# Ansible collections required to deploy and configure Red Hat Satellite 6.19.
+#
+# redhat.satellite is a Red Hat CERTIFIED collection published on Automation Hub
+# (console.redhat.com), NOT on public Galaxy. Authenticate first:
+#   export ANSIBLE_HUB_TOKEN=<your-offline-token>
+#   ansible-galaxy collection install -r requirements.yml -p collections
+#
+# If you do not have Automation Hub access, the upstream community equivalent is
+# theforeman.foreman (public Galaxy) — its module names are identical, but you
+# must then change the module_defaults group in site.yml to
+# 'group/theforeman.foreman.foreman'.
+collections:
+  # Post-installation configuration of Satellite (organizations, manifests,
+  # lifecycle environments, content views, sync plans, etc.).
+  - name: redhat.satellite
+    source: https://console.redhat.com/api/automation-hub/content/published/
+    version: ">=4.0.0"
+
+  # General system prerequisites (firewalld, mounts, etc.).
+  - name: ansible.posix
+    version: ">=1.5.0"
+
+  - name: community.general
+    version: ">=8.0.0"

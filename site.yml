@@ -1,0 +1,57 @@
+---
+###############################################################################
+# Deploy Red Hat Satellite 6.19
+#
+# Production:     ansible-playbook -i inventories/production/hosts.yml   site.yml --ask-vault-pass
+# Qualification:  ansible-playbook -i inventories/qualification/hosts.yml site.yml --ask-vault-pass
+#
+# Useful tags:  prereqs, subscription, install, postconfig
+###############################################################################
+
+- name: Deploy and configure Red Hat Satellite 6.19
+  hosts: satellite
+  become: true
+  gather_facts: true
+
+  vars:
+    # Resolve the admin password from the encrypted vault variable so it is
+    # never written in clear text in group_vars.
+    satellite_admin_password: "{{ vault_satellite_admin_password }}"
+
+  # Shared connection parameters for every redhat.satellite.* module.
+  module_defaults:
+    group/redhat.satellite.satellite:
+      server_url: "{{ satellite_server_url | default('https://' ~ ansible_facts['fqdn']) }}"
+      username: "{{ satellite_admin_username }}"
+      password: "{{ satellite_admin_password }}"
+      validate_certs: "{{ satellite_validate_certs | default(false) }}"
+
+  pre_tasks:
+    - name: Confirm the target environment before proceeding
+      ansible.builtin.debug:
+        msg: >-
+          Deploying Satellite {{ satellite_version }} on
+          {{ ansible_facts['fqdn'] }}
+          (org: {{ satellite_initial_organization }},
+          tuning: {{ satellite_tuning_profile }}).
+
+  roles:
+    - role: satellite_prereqs
+      tags: [prereqs]
+
+    - role: satellite_subscription
+      tags: [subscription]
+
+    - role: satellite_install
+      tags: [install]
+
+    - role: satellite_postconfig
+      tags: [postconfig]
+
+  post_tasks:
+    - name: Deployment summary
+      ansible.builtin.debug:
+        msg:
+          - "Satellite {{ satellite_version }} is ready."
+          - "Web UI: https://{{ ansible_facts['fqdn'] }}"
+          - "Login:  {{ satellite_admin_username }}"

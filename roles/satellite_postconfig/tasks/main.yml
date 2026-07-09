@@ -1,0 +1,28 @@
+---
+# satellite_postconfig — configure organization content via the Satellite API.
+# Modules run from the control node against the Satellite REST API, so every
+# task is delegated to localhost. Shared connection parameters are provided
+# through module_defaults in the play (see site.yml).
+
+- name: Upload the Red Hat subscription manifest
+  redhat.satellite.subscription_manifest:
+    organization: "{{ satellite_initial_organization }}"
+    manifest_path: "{{ satellite_manifest_path }}"
+    state: present
+  delegate_to: localhost
+  when:
+    - satellite_manage_content | bool
+    - satellite_manifest_path | length > 0
+
+- name: Create lifecycle environments (ordered promotion paths)
+  redhat.satellite.lifecycle_environment:
+    name: "{{ item.name }}"
+    label: "{{ item.name | lower | replace(' ', '_') }}"
+    organization: "{{ satellite_initial_organization }}"
+    prior: "{{ item.prior }}"
+    state: present
+  delegate_to: localhost
+  loop: "{{ satellite_lifecycle_environments }}"
+  loop_control:
+    label: "{{ item.name }} (prior: {{ item.prior }})"
+  when: satellite_manage_content | bool

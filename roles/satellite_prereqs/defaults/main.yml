@@ -1,0 +1,31 @@
+---
+# Default variables for the satellite_prereqs role.
+# These are safe fallbacks; environment values come from inventory group_vars.
+
+# Minimum hardware requirements for Satellite 6.19 (Red Hat baseline).
+satellite_min_cpu_cores: 4
+satellite_min_ram_mb: 20480          # 20 GB
+satellite_min_root_free_gb: 20
+
+manage_storage: true
+satellite_storage_mounts: []
+
+chrony_ntp_servers:
+  - 0.rhel.pool.ntp.org
+  - 1.rhel.pool.ntp.org
+timezone: "UTC"
+
+# Ports required by a Satellite server (inbound). See Red Hat docs for the
+# authoritative list; TFTP/DNS/DHCP only needed when those features are enabled.
+satellite_firewall_ports:
+  - "53/tcp"
+  - "53/udp"
+  - "67/udp"
+  - "69/udp"
+  - "80/tcp"
+  - "443/tcp"
+  - "5647/tcp"      # Qpid/Katello agent (goferd)
+  - "8000/tcp"      # Anaconda/provisioning templates
+  - "8140/tcp"      # Puppet
+  - "9090/tcp"      # Smart Proxy / Cockpit
+  - "5910-5930/tcp" # NoVNC console

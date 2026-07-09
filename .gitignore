@@ -1,0 +1,15 @@
+# Ansible
+*.retry
+collections/
+*.log
+
+# Vault password files — never commit
+.vault_pass
+.vault-password
+vault-password*
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/

@@ -1,0 +1,70 @@
+---
+# satellite_subscription — register the host, enable repos, apply updates.
+
+- name: Check current subscription-manager registration status
+  ansible.builtin.command:
+    cmd: subscription-manager identity
+  register: satellite_rhsm_identity
+  changed_when: false
+  failed_when: false
+
+- name: Register the system with Red Hat using an activation key
+  community.general.redhat_subscription:
+    state: present
+    org_id: "{{ rhsm_org_id }}"
+    activationkey: "{{ rhsm_activation_key }}"
+    server_hostname: "{{ rhsm_server_hostname }}"
+    force_register: false
+  when:
+    - satellite_rhsm_identity.rc != 0
+    - rhsm_activation_key | default('') | length > 0
+  no_log: true
+
+- name: Register the system with Red Hat using username/password (fallback)
+  community.general.redhat_subscription:
+    state: present
+    username: "{{ vault_rhsm_username }}"
+    password: "{{ vault_rhsm_password }}"
+    server_hostname: "{{ rhsm_server_hostname }}"
+    auto_attach: true
+    force_register: false
+  when:
+    - satellite_rhsm_identity.rc != 0
+    - rhsm_activation_key | default('') | length == 0
+  no_log: true
+
+- name: Lock the system to RHEL {{ rhsm_release }}
+  community.general.rhsm_release:
+    release: "{{ rhsm_release }}"
+
+- name: Disable all repositories to guarantee a clean, known set
+  community.general.rhsm_repository:
+    name: "*"
+    state: disabled
+
+- name: Enable only the repositories required for Satellite {{ satellite_version }}
+  community.general.rhsm_repository:
+    name: "{{ satellite_required_repos }}"
+    state: enabled
+
+- name: Refresh subscription-manager metadata
+  ansible.builtin.command:
+    cmd: subscription-manager refresh
+  changed_when: true
+
+- name: Clear dnf metadata cache
+  ansible.builtin.command:
+    cmd: dnf clean all
+  changed_when: true
+
+- name: Apply the latest package updates before installing Satellite
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    update_cache: true
+  register: satellite_os_update
+
+- name: Reboot if the kernel or core libraries were updated
+  ansible.builtin.reboot:
+    reboot_timeout: 600
+  when: satellite_os_update.changed and satellite_reboot_after_update | default(true) | bool

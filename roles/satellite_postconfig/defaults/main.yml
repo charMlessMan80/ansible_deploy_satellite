@@ -1,0 +1,15 @@
+---
+# Defaults for satellite_postconfig role.
+
+satellite_manage_content: true
+satellite_initial_organization: "Default Organization"
+satellite_initial_location: "Default Location"
+satellite_admin_username: "admin"
+satellite_manifest_path: ""
+
+satellite_lifecycle_environments: []
+
+# API endpoint (defaults to the managed host's FQDN).
+satellite_server_url: "https://{{ ansible_facts['fqdn'] }}"
+# Trust the Satellite CA. Set to true once a trusted/custom cert is in place.
+satellite_validate_certs: false

@@ -1,0 +1,80 @@
+---
+###############################################################################
+# QUALIFICATION (staging / pre-production) variables for Satellite 6.19
+#
+# Mirrors production settings but with smaller sizing and a self-signed CA so
+# it is cheap to rebuild and safe to experiment on.
+###############################################################################
+
+# ---------------------------------------------------------------------------
+# Platform / version
+# ---------------------------------------------------------------------------
+satellite_version: "6.19"
+rhel_major_release: "9"
+
+# ---------------------------------------------------------------------------
+# Red Hat subscription registration
+# ---------------------------------------------------------------------------
+rhsm_org_id: "1234567"
+rhsm_activation_key: "satellite-qual-key"
+rhsm_server_hostname: "subscription.rhsm.redhat.com"
+rhsm_release: "{{ rhel_major_release }}"
+
+# ---------------------------------------------------------------------------
+# Storage layout — smaller than production, single data volume is acceptable
+# ---------------------------------------------------------------------------
+manage_storage: true
+satellite_storage_mounts:
+  - path: /var/lib/pulp
+    device: /dev/mapper/vg_sat-lv_pulp
+    fstype: xfs
+    size_hint: ">= 200 GB"
+  - path: /var/lib/pgsql
+    device: /dev/mapper/vg_sat-lv_pgsql
+    fstype: xfs
+    size_hint: ">= 50 GB"
+
+# ---------------------------------------------------------------------------
+# Sizing / installer tuning profile — 'default' is fine for qualification
+# ---------------------------------------------------------------------------
+satellite_tuning_profile: "default"
+
+# ---------------------------------------------------------------------------
+# satellite-installer options
+# ---------------------------------------------------------------------------
+satellite_initial_organization: "ACME"
+satellite_initial_location: "Datacenter-Qual"
+satellite_admin_username: "admin"
+
+satellite_enable_dns: false
+satellite_enable_dhcp: false
+satellite_enable_tftp: true
+satellite_enable_foreman_proxy_content: true
+satellite_foreman_proxy_dns_managed: false
+satellite_foreman_proxy_dhcp_managed: false
+
+# ---------------------------------------------------------------------------
+# Certificates — self-signed is acceptable for qualification
+# ---------------------------------------------------------------------------
+satellite_use_custom_certs: false
+
+# ---------------------------------------------------------------------------
+# Networking / time
+# ---------------------------------------------------------------------------
+chrony_ntp_servers:
+  - 0.rhel.pool.ntp.org
+  - 1.rhel.pool.ntp.org
+timezone: "UTC"
+satellite_http_proxy: ""
+
+# ---------------------------------------------------------------------------
+# Post-installation content configuration
+# ---------------------------------------------------------------------------
+satellite_manage_content: true
+satellite_manifest_path: "/root/manifest_qual.zip"
+
+satellite_lifecycle_environments:
+  - name: "Development"
+    prior: "Library"
+  - name: "Testing"
+    prior: "Development"

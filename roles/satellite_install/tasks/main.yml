@@ -1,0 +1,87 @@
+---
+# satellite_install — install the package set and run satellite-installer.
+
+- name: Install the satellite package
+  ansible.builtin.dnf:
+    name: satellite
+    state: present
+
+- name: Validate custom certificate files exist on the host
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ satellite_custom_cert_file }}"
+    - "{{ satellite_custom_key_file }}"
+    - "{{ satellite_custom_ca_bundle_file }}"
+  loop_control:
+    label: "{{ item }}"
+  register: satellite_cert_stat
+  when: satellite_use_custom_certs | bool
+
+- name: Fail early if any custom certificate file is missing
+  ansible.builtin.assert:
+    that: item.stat.exists
+    fail_msg: >-
+      Custom certificate file {{ item.item }} not found. Copy your signed
+      certificate, key and CA bundle to the host first, or set
+      satellite_use_custom_certs: false.
+  loop: "{{ satellite_cert_stat.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: satellite_use_custom_certs | bool
+
+- name: Build the satellite-installer argument list
+  ansible.builtin.set_fact:
+    satellite_installer_args: >-
+      {{
+        [
+          '--scenario', 'satellite',
+          '--tuning', satellite_tuning_profile,
+          '--foreman-initial-organization', satellite_initial_organization,
+          '--foreman-initial-location', satellite_initial_location,
+          '--foreman-initial-admin-username', satellite_admin_username,
+          '--foreman-initial-admin-password', satellite_admin_password,
+          '--foreman-proxy-tftp', (satellite_enable_tftp | bool | lower),
+          '--foreman-proxy-dns', (satellite_enable_dns | bool | lower),
+          '--foreman-proxy-dhcp', (satellite_enable_dhcp | bool | lower),
+          '--foreman-proxy-dns-managed', (satellite_foreman_proxy_dns_managed | bool | lower),
+          '--foreman-proxy-dhcp-managed', (satellite_foreman_proxy_dhcp_managed | bool | lower)
+        ]
+        + (
+          ['--certs-server-cert', satellite_custom_cert_file,
+           '--certs-server-key', satellite_custom_key_file,
+           '--certs-server-ca-cert', satellite_custom_ca_bundle_file]
+          if satellite_use_custom_certs | bool else []
+        )
+        + (
+          ['--http-proxy', satellite_http_proxy]
+          if (satellite_http_proxy | default('') | length > 0) else []
+        )
+      }}
+  no_log: true
+
+- name: Run satellite-installer (idempotent, uses detailed exit codes)
+  ansible.builtin.command:
+    argv: "{{ ['satellite-installer'] + satellite_installer_args + ['--detailed-exitcodes'] }}"
+  register: satellite_installer_run
+  changed_when: satellite_installer_run.rc == 2
+  # 0 = no changes, 2 = configuration applied/changed. Any other code is a failure.
+  failed_when: satellite_installer_run.rc not in [0, 2]
+  no_log: true
+
+- name: Wait for the Satellite web service to become available
+  ansible.builtin.uri:
+    url: "https://{{ ansible_facts['fqdn'] }}/pub/katello-ca-consumer-latest.noarch.rpm"
+    validate_certs: false
+    status_code: [200]
+  register: satellite_web_check
+  retries: 30
+  delay: 20
+  until: satellite_web_check.status == 200
+
+- name: Show satellite-installer result summary
+  ansible.builtin.debug:
+    msg: >-
+      satellite-installer completed with rc={{ satellite_installer_run.rc }}
+      ({{ 'changes applied' if satellite_installer_run.rc == 2 else 'no changes' }}).
+      Full log: {{ satellite_installer_log }}
