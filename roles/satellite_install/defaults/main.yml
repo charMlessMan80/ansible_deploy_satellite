@@ -18,6 +18,16 @@ satellite_custom_cert_file: ""
 satellite_custom_key_file: ""
 satellite_custom_ca_bundle_file: ""
 
+# Optionally push the custom certs from the seed (control node) to the target
+# before running the installer. When false, the cert/key/CA files must already
+# be present on the Satellite host at the *_file paths above (e.g. delivered by
+# the rhel_post_install PKI enrolment). When true, set the *_src paths to the
+# source files on the seed (repo-relative 'files/...' or absolute).
+satellite_custom_certs_deliver: false
+satellite_custom_cert_src: ""
+satellite_custom_key_src: ""
+satellite_custom_ca_bundle_src: ""
+
 satellite_http_proxy: ""
 
 # Where the generated installer answer/log lives.

@@ -69,9 +69,12 @@ satellite_http_proxy: ""
 
 # ---------------------------------------------------------------------------
 # Post-installation content configuration
+# The manifest is uploaded via the Satellite API from the control node
+# (the task is delegated to localhost), so this path is read from the SEED
+# server, not the Satellite host. Keep the manifest alongside the project.
 # ---------------------------------------------------------------------------
 satellite_manage_content: true
-satellite_manifest_path: "/root/manifest_qual.zip"
+satellite_manifest_path: "{{ playbook_dir }}/files/manifest_qual.zip"
 
 satellite_lifecycle_environments:
   - name: "Development"

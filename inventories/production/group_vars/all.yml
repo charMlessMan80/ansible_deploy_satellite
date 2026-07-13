@@ -79,6 +79,27 @@ satellite_custom_cert_file: "/root/certs/satellite.crt"
 satellite_custom_key_file: "/root/certs/satellite.key"
 satellite_custom_ca_bundle_file: "/root/certs/ca-bundle.crt"
 
+# Deliver the certs from the seed (control node) to the target on run. Set to
+# false if the host already carries them (e.g. from rhel_post_install PKI
+# enrolment). The *_src paths point to files on the seed.
+satellite_custom_certs_deliver: true
+satellite_custom_cert_src: "{{ playbook_dir }}/files/certs/prod/satellite.crt"
+satellite_custom_key_src: "{{ playbook_dir }}/files/certs/prod/satellite.key"
+satellite_custom_ca_bundle_src: "{{ playbook_dir }}/files/certs/prod/ca-bundle.crt"
+
+# --- Alternative: reuse the machine cert enrolled by rhel_post_install -------
+# rhel_post_install (PKI_enrolment) requests a certmonger/AD CS machine cert to
+#   /etc/pki/tls/certs/<fqdn>.crt  and  /etc/pki/tls/private/<fqdn>.key
+# and imports the AD CS root CA to
+#   /etc/pki/ca-trust/source/anchors/adcs-root-ca.crt
+# To point Satellite at those already-present files instead of delivering new
+# ones, disable delivery and set the *_file paths accordingly:
+#
+#   satellite_custom_certs_deliver: false
+#   satellite_custom_cert_file: "/etc/pki/tls/certs/{{ ansible_facts['fqdn'] }}.crt"
+#   satellite_custom_key_file: "/etc/pki/tls/private/{{ ansible_facts['fqdn'] }}.key"
+#   satellite_custom_ca_bundle_file: "/etc/pki/ca-trust/source/anchors/adcs-root-ca.crt"
+
 # ---------------------------------------------------------------------------
 # Networking / time
 # ---------------------------------------------------------------------------
@@ -92,9 +113,12 @@ satellite_http_proxy: ""
 
 # ---------------------------------------------------------------------------
 # Post-installation content configuration (redhat.satellite collection)
+# The manifest is uploaded via the Satellite API from the control node
+# (the task is delegated to localhost), so this path is read from the SEED
+# server, not the Satellite host. Keep the manifest alongside the project.
 # ---------------------------------------------------------------------------
 satellite_manage_content: true
-satellite_manifest_path: "/root/manifest_prod.zip"
+satellite_manifest_path: "{{ playbook_dir }}/files/manifest_prod.zip"
 
 satellite_lifecycle_environments:
   - name: "Development"

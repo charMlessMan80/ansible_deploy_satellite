@@ -13,6 +13,52 @@ following Red Hat and Ansible best practices.
 | 3 | `satellite_install` | Install the `satellite` package and run `satellite-installer` (idempotent, custom-cert aware, tuning profile) |
 | 4 | `satellite_postconfig` | Upload subscription manifest and create lifecycle environments via the Satellite API |
 
+## Deployment model (ansible-core "seed")
+
+Satellite is deployed onto a **new infrastructure** from a central **ansible-core
+"seed" server**, which also deploys Ansible Automation Platform (AAP) — kept in a
+**separate project/repo**. The seed is the single bootstrap control node for the
+whole new estate.
+
+```
+                +-------------------------+
+                |  ansible-core "seed"    |
+                |  (control node)         |
+                |  - this repo (Satellite)|
+                |  - AAP repo (separate)  |
+                +-----------+-------------+
+                            | SSH (svc_ansible + sudo)
+             +--------------+--------------+
+             |                             |
+     +-------v--------+           +--------v-------+
+     | Satellite host |           |  AAP host(s)   |
+     | (already built)|           | (already built)|
+     +----------------+           +----------------+
+```
+
+Key assumptions for this repo:
+
+- **Targets already exist.** The seed only *configures* hosts; it does not
+  provision the VMs. Ensure the Satellite host is a freshly installed RHEL 9
+  with correct FQDN/DNS before running.
+- **Connection identity** is declared per environment in
+  `inventories/<env>/hosts.yml` under `all.vars` (`ansible_user`,
+  `ansible_ssh_private_key_file`). Privilege escalation (sudo → root) is enabled
+  globally in `ansible.cfg`.
+- **First-run connectivity from the seed:**
+  - Distribute the seed user's public key to each target's `authorized_keys`.
+  - Pre-seed each target's host key (`host_key_checking` is on):
+    `ssh-keyscan -H <ip_or_fqdn> >> ~/.ssh/known_hosts`.
+- **Control-node-side files.** The manifest is uploaded through the Satellite
+  API from the seed (`delegate_to: localhost`), so `satellite_manifest_path`
+  points to a file **on the seed** (default: `files/manifest_<env>.zip` next to
+  `site.yml`). Custom certificates are used **on the Satellite host**: set
+  `satellite_custom_certs_deliver: true` to have the install role push the
+  cert/key/CA from the seed (`satellite_custom_*_src`) to the target
+  (`satellite_custom_*_file`), or leave it `false` if the host already carries
+  them (e.g. from `rhel_post_install` PKI enrolment). Set
+  `satellite_use_custom_certs: false` to use the installer's self-signed CA.
+
 ## Repository layout
 
 ```
@@ -58,6 +104,10 @@ following Red Hat and Ansible best practices.
 2. Edit the inventory for your environment:
    - `inventories/production/hosts.yml`
    - `inventories/qualification/hosts.yml`
+
+   Set the connection identity (`ansible_user`,
+   `ansible_ssh_private_key_file`) under `all.vars` so the seed can reach the
+   already-provisioned target(s).
 
 3. Adjust non-secret settings in `group_vars/all.yml` (org/location name,
    storage devices, tuning profile, certificates, repos, lifecycle envs).

@@ -6,6 +6,47 @@
     name: satellite
     state: present
 
+- name: Ensure the certificate directory exists on the Satellite host
+  ansible.builtin.file:
+    path: "{{ item | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - "{{ satellite_custom_cert_file }}"
+    - "{{ satellite_custom_key_file }}"
+    - "{{ satellite_custom_ca_bundle_file }}"
+  loop_control:
+    label: "{{ item | dirname }}"
+  when:
+    - satellite_use_custom_certs | bool
+    - satellite_custom_certs_deliver | bool
+
+- name: Deliver custom certificate files from the seed to the Satellite host
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - src: "{{ satellite_custom_cert_src }}"
+      dest: "{{ satellite_custom_cert_file }}"
+      mode: "0644"
+    - src: "{{ satellite_custom_key_src }}"
+      dest: "{{ satellite_custom_key_file }}"
+      mode: "0600"
+    - src: "{{ satellite_custom_ca_bundle_src }}"
+      dest: "{{ satellite_custom_ca_bundle_file }}"
+      mode: "0644"
+  loop_control:
+    label: "{{ item.dest }}"
+  when:
+    - satellite_use_custom_certs | bool
+    - satellite_custom_certs_deliver | bool
+  no_log: true
+
 - name: Validate custom certificate files exist on the host
   ansible.builtin.stat:
     path: "{{ item }}"
